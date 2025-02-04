@@ -1,0 +1,107 @@
+<div class="chat">
+    <form action="" onsubmit="Chat__submitWriteMessageForm(this); return false;">
+        <input name="authorName" type="text" placeholder="작성자">
+        <input name="content" type="text" placeholder="내용">
+        <input type="submit" value="작성">
+    </form>
+
+    <div class="chat__messagebox">
+        <ul class="chat__message-ul">
+
+        </ul>
+    </div>
+    <button onclick="Chat__loadMore();">로드</button>
+</div>
+
+
+<script>
+    //fetchGet, fetchPost
+    function fetchPost(url, data) {
+        return fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json"
+            },
+            body: JSON.stringify(data)
+        }).then((response) => response.json());
+    }
+
+    function fetchGet(url, data) {
+        let query = Object.keys(data)
+            .map((k) => encodeURIComponent(k) + "=" + encodeURIComponent(data[k]))
+            .join("&");
+
+        return fetch(url + "?" + query, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json"
+            }
+        }).then((response) => response.json());
+    }
+
+    //채팅 메세지 작성 폼 체크
+    function Chat__submitWriteMessageForm(form) {
+        form.authorName.value = form.authorName.value.trim();
+
+        if (form.authorName.value.length == 0) {
+            form.authorName.focus();
+            alert("너 누구?");
+            return;
+        }
+
+        form.content.value = form.content.value.trim();
+
+        if (form.content.value.length == 0) {
+            form.content.focus();
+            alert("내용 무엇?");
+            return;
+        }
+
+        fetchPost("/chat/writeMessage", {
+            authorName: form.authorName.value,
+            content: form.content.value
+        }).then(console.log);
+
+        form.content.value = '';
+        form.content.focus();
+
+        // POST localhost:8080/chat/writeMessage
+    }
+
+    //채팅 메세지 불러오기(read)
+    // 클라이언트가 받은 메세지의 번호를 입력해야함
+    // --> 메세지 가져오기 요청시에 필요한 부분만 잘라서 가져오기 위함
+    let Chat__lastLodedId = 0;
+
+    function Chat__loadMore() {
+        fetchGet("/chat/messages", {
+            fromId: Chat__lastLodedId
+        })
+            .then(body => {
+                console.log('body : ' + body);
+                console.log('body.data : ' + body.data);
+                console.log('body.data.messages : ' + body.data.messages);
+                Chat__drawMessages(body.data.messages);
+            });
+    }
+
+    const Chat_elMessageUl = document.querySelector('.chat__message-ul');
+
+    function Chat__drawMessages(messages) {
+        if (messages.length == 0) return;
+
+        // 가져온 메세지를 그리기 전에 Chat__lastLodedId 갱신
+        Chat__lastLodedId = messages[messages.length - 1].id;
+
+        messages.forEach((message) => {
+            Chat_elMessageUl.
+            insertAdjacentHTML(
+                "afterbegin",
+                `<li>${message.authorName} : ${message.content}</li>`
+            );
+        });
+    }
+
+</script>
